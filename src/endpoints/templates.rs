@@ -120,20 +120,6 @@ async fn htmx() -> Result<NamedFile, actix_web::Error> {
     }
 }
 
-#[get("/hyperscript")]
-async fn hyperscript() -> Result<NamedFile, actix_web::Error> {
-    let filename = "hyperscript.js";
-    let path: PathBuf = ["static", "assets", "htmx", filename].iter().collect();
-
-    match NamedFile::open(path) {
-        Ok(file) => Ok(file),
-        Err(err) => {
-            error!("Error opening file -- {filename} -- : {err:#?}");
-            Err(actix_web::error::ErrorInternalServerError(err))
-        }
-    }
-}
-
 #[get("/response-targets")]
 #[instrument(
     name = "Serving response-targets.js",
@@ -170,40 +156,23 @@ async fn sse() -> Result<NamedFile, actix_web::Error> {
     }
 }
 
-#[get("/action_script")]
-#[instrument(
-    name = "Serving action_script.js",
-    level = "info",
-    target = "web_app_bloodhound"
-)]
-async fn action_script() -> Result<NamedFile, actix_web::Error> {
-    info!("Serving action_script.js");
+// #[get("/action_script")]
+// #[instrument(
+//     name = "Serving action_script.js",
+//     level = "info",
+//     target = "web_app_bloodhound"
+// )]
+// async fn action_script() -> Result<NamedFile, actix_web::Error> {
+//     info!("Serving action_script.js");
 
-    let filename = "time-dilation.js";
-    let path: PathBuf = ["static", "js", filename].iter().collect();
+//     let filename = "time-dilation.js";
+//     let path: PathBuf = ["static", "js", filename].iter().collect();
 
-    match NamedFile::open(path) {
-        Ok(file) => Ok(file),
-        Err(err) => {
-            error!("Error opening file -- {filename} -- : {err:#?}");
-            Err(actix_web::error::ErrorInternalServerError(err))
-        }
-    }
-}
-
-#[get("/gif")]
-#[instrument(name = "Serving gif", level = "info", target = "web_app_bloodhound")]
-async fn gif() -> Result<NamedFile, actix_web::Error> {
-    info!("Serving gif");
-
-    let filename = "alert.gif";
-    let path: PathBuf = ["static", "imgs", filename].iter().collect();
-
-    match NamedFile::open(path) {
-        Ok(file) => Ok(file),
-        Err(err) => {
-            error!("Error opening file -- {filename} -- : {err:#?}");
-            Err(actix_web::error::ErrorInternalServerError(err))
-        }
-    }
-}
+//     match NamedFile::open(path) {
+//         Ok(file) => Ok(file),
+//         Err(err) => {
+//             error!("Error opening file -- {filename} -- : {err:#?}");
+//             Err(actix_web::error::ErrorInternalServerError(err))
+//         }
+//     }
+// }

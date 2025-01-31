@@ -41,8 +41,6 @@ fn run(
             .service(templates::hyperscript)
             .service(templates::response_targets)
             .service(templates::sse)
-            .service(templates::action_script)
-            .service(templates::gif)
             .service(index::index)
             .service(health::health_check)
     })

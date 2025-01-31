@@ -25,7 +25,7 @@ postgresql:
   username: "postgres"
   password: ""
   port: 5432
-  host: ""
+  host: "10.20.30.23"
   db: ""
   require_auth: false
   schema: "static/schema.sql"

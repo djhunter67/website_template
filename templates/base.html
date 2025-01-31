@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>{% block title %}{{ title }} - My Site{% endblock %}</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="icon" href="/favicon" type="image/x-icon" />
+    <link rel="stylesheet" type="text/css" href="/stylesheet">
+    <script  type="text/javascript" defer src="/htmx"></script>
+    <script  type="text/javascript" defer src="/response-targets"></script>
+    <script  type="text/javascript" defer src="/sse"></script>
+    <script  type="text/javascript" defer src="/action_script"></script>
+    <script  type="text/javascript" defer src="/hyperscript"></script>
+    {% block head %}{% endblock %}
+  </head>
+  <body>
+    <div id="template_pages">
+      {% block individual_page_contents %}
+      {% endblock %}
+    </div>
+    <div id="error_block">
+      {% block error_contents %}
+      {% endblock %}
+    </div>
+  </body>
+</html>

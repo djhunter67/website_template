@@ -1,0 +1,36 @@
+[package]
+name = "portfolio_site"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "portfolio_site"
+
+[lints.clippy]
+pedantic = { level = "deny", priority = 1 }
+wildcard_imports = "deny"
+must_use_candidate = "warn"
+enum_glob_use = "deny"
+nursery = { level = "deny", priority = 1 }
+unwrap_used = "deny"
+
+[profile.release]
+overflow-checks = true
+lto = "thin"
+codegen-units = 3
+panic = "abort"
+incremental = true
+opt-level = 1
+strip = "symbols"
+rpath = false
+debug-assertions = false
+debug = false
+
+[target.cpu_native]
+rustflags = ["-Ctarget-cpu=native"]
+
+[dependencies]

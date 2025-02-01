@@ -8,8 +8,8 @@ This template repository employs the following stack:
 - HTMX -- Sole JavaScript dependency
 - SCSS
 - Choice of database
-		- Postgresql
-		- MongoDB
-		- Sqlite
-		- Redis
+	- Postgresql
+	- MongoDB
+	- Sqlite
+	- Redis
 

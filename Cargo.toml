@@ -1,14 +1,16 @@
 [package]
-name = "portfolio_site"
+name = "website_template"
 version = "0.1.0"
 edition = "2021"
+authors = ["Christerpher Hunter <djhunter67@gmail.com>"]
+documentation = "https://github.com/djhunter67/website_template"
 
 [lib]
 path = "src/lib.rs"
 
 [[bin]]
 path = "src/main.rs"
-name = "portfolio_site"
+name = "website_template"
 
 [lints.clippy]
 pedantic = { level = "deny", priority = 1 }

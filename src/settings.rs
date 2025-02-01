@@ -1,6 +1,7 @@
+use config::{Config, File};
 use serde::Deserialize;
 use std::env;
-use tracing::instrument;
+use tracing::{error, info, instrument};
 
 /// Global setting for exposing all preconfigured variables
 #[derive(Deserialize, Clone)]
@@ -47,6 +48,7 @@ pub struct Mongo {
 pub struct Sqlite {
     pub path: String,
     pub schema: String,
+    pub pool_size: u32,
 }
 
 #[derive(Deserialize, Clone)]
@@ -143,11 +145,9 @@ pub fn get() -> Result<Settings, config::ConfigError> {
         "Building the settings for the {} environment",
         environment.as_str()
     );
-    let settings = match config::Config::builder()
-        .add_source(config::File::from(setting_directory.join("base.yaml")))
-        .add_source(config::File::from(
-            setting_directory.join(environment_filename),
-        ))
+    let settings: Config = match Config::builder()
+        .add_source(File::from(setting_directory.join("base.yaml")))
+        .add_source(File::from(setting_directory.join(environment_filename)))
         // Add in settings from environment variables (with a prefix of APP and '__' as seperator)
         // e.g `APP_APPLICATION__PORT_5001 would set `Setting.application.port`
         .add_source(
@@ -157,8 +157,14 @@ pub fn get() -> Result<Settings, config::ConfigError> {
         )
         .build()
     {
-        Ok(settings) => settings,
-        Err(err) => return Err(err),
+        Ok(settings) => {
+            info!("Successfully loaded the settings");
+            settings
+        }
+        Err(err) => {
+            error!("Failed to load the settings");
+            return Err(err);
+        }
     };
 
     settings.try_deserialize::<Settings>()

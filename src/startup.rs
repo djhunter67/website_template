@@ -1,7 +1,9 @@
 use crate::endpoints::{health, index, templates};
 use crate::settings::Settings;
 use actix_web::{http::KeepAlive, middleware, App, HttpServer};
+use r2d2::Pool;
 use std::net;
+use std::sync::{Arc, Mutex};
 use tracing::{debug, info, instrument, warn};
 
 pub const PARSE_COUNT: u8 = 9;
@@ -16,16 +18,22 @@ fn run(
     listener: std::net::TcpListener,
     settings: Settings,
 ) -> Result<actix_web::dev::Server, std::io::Error> {
-    // let manager = r2d2_sqlite::SqliteConnectionManager::file(settings.sqlite.path.clone());
-    // let manager = r2d2_sqlite::SqliteConnectionManager::memory();
+    let sqlite_manager: Arc<Mutex<Pool<r2d2_sqlite::SqliteConnectionManager>>> =
+        Arc::new(Mutex::new(
+            Pool::new(r2d2_sqlite::SqliteConnectionManager::file(
+                settings.sqlite.path,
+            ))
+            .expect("Failed to create the connection pool"),
+        ));
 
-    // let pool = r2d2::Pool::new(manager).expect("Failed to create the connection pool");
+    // let sqlite_manager = Arc::new(r2d2_sqlite::SqliteConnectionManager::memory());
+
+    // Redis connection pool
+    // let pool = r2d2::Pool::new(sqlite_manager).expect("Failed to create the connection pool");
 
     // Connect to the MongoDB database
     // let db_data = Data::new(pool);
     // info!("Processed DB connection pool for distribution");
-
-    // Redis connection pool
 
     let server = HttpServer::new(move || {
         App::new()
@@ -33,12 +41,12 @@ fn run(
             .wrap(middleware::Compress::default())
             // .wrap(middleware::DefaultHeaders::new().add(("X-Version", env!("CARGO_PKG_VERSION"))))
             // .app_data(db_data.clone())
+            .app_data(sqlite_manager.clone())
             .service(templates::favicon)
             .service(templates::logomain)
             .service(templates::stylesheet)
             .service(templates::source_map)
             .service(templates::htmx)
-            .service(templates::hyperscript)
             .service(templates::response_targets)
             .service(templates::sse)
             .service(index::index)

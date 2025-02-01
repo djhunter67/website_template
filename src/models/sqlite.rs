@@ -1,40 +1,18 @@
 //! Initialize and return a connection to the ``SQLite`` database.
-use std::sync::{Arc, Mutex};
+use std::{sync::Arc, time::Duration};
 
 use crate::settings::Settings;
 use actix_web::web::Data;
 use r2d2::Pool;
-use r2d2_sqlite::{rusqlite, SqliteConnectionManager};
+use r2d2_sqlite::SqliteConnectionManager;
 use tracing::instrument;
 
-///Wrapper for the `SqliteConnectionManager` to be used with `r2d2`
-pub struct SQLiteConnectionManagerWrapper(Arc<Mutex<SqliteConnectionManager>>);
-
-impl r2d2::ManageConnection for SQLiteConnectionManagerWrapper {
-    type Connection = rusqlite::Connection;
-    type Error = rusqlite::Error;
-
-    #[instrument(level = "info", name = "Connecting to the SQLite database", skip(self))]
-    fn connect(&self) -> Result<Self::Connection, Self::Error> {
-        let manager = self
-            .0
-            .lock()
-            .expect("No database connection found in the pool.")
-            .connect()?;
-        Ok(manager)
-    }
-
-    fn is_valid(&self, conn: &mut Self::Connection) -> Result<(), Self::Error> {
-        conn.execute("SELECT 1", rusqlite::params![])?;
-        Ok(())
-    }
-
-    fn has_broken(&self, conn: &mut Self::Connection) -> bool {
-        conn.execute("SELECT 1", rusqlite::params![]).is_err()
-    }
-}
-
 #[must_use]
+#[instrument(
+    name = "Establishing a connection to the SQLite database",
+    level = "info",
+    skip(settings, manager)
+)]
 /// # Returns
 ///   - Returns a `Pool` of `SqliteConnectionManager` to the sqlite db if successful
 ///
@@ -47,136 +25,187 @@ impl r2d2::ManageConnection for SQLiteConnectionManagerWrapper {
 /// Initialize and return a connection to the ``SQLite`` database.
 pub fn establish_connection(
     settings: &Settings,
-    manager: &Data<Arc<Mutex<SqliteConnectionManager>>>,
-) -> Pool<SQLiteConnectionManagerWrapper> {
-    let pool = r2d2::Pool::builder()
+    manager: Data<SqliteConnectionManager>,
+) -> Pool<SqliteConnectionManager> {
+    r2d2::Pool::builder()
         .max_size(settings.sqlite.pool_size)
-        .build(SQLiteConnectionManagerWrapper(manager.get_ref().clone()))
-        .expect("Failed to create pool");
-
-    pool
+        .connection_timeout(Duration::from_secs(settings.sqlite.connection_timeout))
+        .build(
+            Arc::into_inner(manager.into_inner())
+                .map_or_else(|| panic!("No Manager found"), |manager| manager),
+        )
+        .expect("Failed to create pool")
 }
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
+    use rstest::rstest;
+    use std::thread::spawn;
+
     use crate::settings::{self};
 
     use super::*;
 
-    #[test]
-    fn test_establish_connection() {
-        let settings = settings::get().expect("Failed to load settings");
+    #[rstest]
+    fn test_can_write_to_db() {
+        let manager = r2d2_sqlite::SqliteConnectionManager::file("test.db");
+        let pool = establish_connection(&settings::get().unwrap(), Data::new(manager));
+        let conn = pool.get().unwrap();
 
-        // Create a mock SQLite connection manager for testing purposes
-        let mock_manager = Arc::new(Mutex::new(SqliteConnectionManager::file("test.db")));
+        // Test query
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY, name TEXT NOT NULL)",
+            [],
+        )
+        .unwrap();
+        conn.execute("INSERT INTO test (name) VALUES (?)", ["Hello"])
+            .unwrap();
+        let result: String = conn
+            .query_row("SELECT name FROM test WHERE id = 1", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(result, "Hello");
 
-        // Call the establish_connection function with the mock settings and manager
-        let pool = establish_connection(&settings, &Data::new(mock_manager));
+        drop(conn);
 
-        // Assert that the returned value is a valid r2d2::Pool
-        assert!(pool.test_on_check_out());
+        // Remove the test database
+        assert!(std::fs::remove_file("test.db").is_ok());
 
-        // Drop the pool
+        // Test if the database was removed
+        assert!(std::fs::metadata("test.db").is_err());
+    }
+
+    #[rstest]
+    fn test_single_writer() {
+        // Create a connection pool
+        let manager = r2d2_sqlite::SqliteConnectionManager::file("test_1.db");
+        let pool = establish_connection(&settings::get().unwrap(), Data::new(manager));
+
+        // Insert 5 items using a for loop
+        insert_items(&pool, 0..5);
+
+        // Verify the count matches
+        assert_eq!(get_count(&pool), 5);
+
         drop(pool);
 
-        // Delete the database file
-        std::fs::remove_file("test.db").expect("Failed to delete file");
+        // Remove the test database
+        assert!(std::fs::remove_file("test_1.db").is_ok());
     }
 
-    #[test]
-    fn test_db_is_created() {
-        let settings = settings::get().expect("Failed to load settings");
+    #[rstest]
+    fn test_write_and_read() {
+        let manager = r2d2_sqlite::SqliteConnectionManager::file("test_2.db");
+        let pool = establish_connection(&settings::get().unwrap(), Data::new(manager));
 
-        // Create a mock SQLite connection manager for testing purposes
-        let mock_manager = Arc::new(Mutex::new(SqliteConnectionManager::file("test.db")));
-
-        // Call the establish_connection function with the mock settings and manager
-        let _pool = establish_connection(&settings, &Data::new(mock_manager));
-
-        // Assert that the database file was created
-        assert!(std::path::Path::new("test.db").exists());
-
-        // Delete the database file
-        std::fs::remove_file("test.db").expect("Failed to delete file");
-    }
-
-    #[test]
-    fn test_if_can_write_to_db() {
-        let settings = settings::get().expect("Failed to load settings");
-
-        // Create a mock SQLite connection manager for testing purposes
-        let mock_manager = Arc::new(Mutex::new(SqliteConnectionManager::file("test.db")));
-
-        // Call the establish_connection function with the mock settings and manager
-        let pool = establish_connection(&settings, &Data::new(mock_manager));
-
-        // Get a connection from the pool
-        let conn = pool.get().expect("Failed to get connection");
-
-        // Create a table
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY, name TEXT)",
-            rusqlite::params![],
-        )
-        .expect("Failed to create table");
-
-        // Insert a row into the table
-        assert!(conn
+        // Create table if not exists
+        pool.get()
+            .unwrap()
             .execute(
-                "INSERT INTO test (name) VALUES (?)",
-                rusqlite::params!["test"],
+                "CREATE TABLE IF NOT EXISTS test (
+            id INTEGER PRIMARY KEY,
+            value TEXT NOT NULL
+        )",
+                [],
             )
-            .is_ok());
+            .unwrap();
 
-        // Drop the table
-        conn.execute("DROP TABLE test", rusqlite::params![])
-            .expect("Failed to drop table");
+        // Insert test value
+        let test_value = "Test Value";
+        pool.get()
+            .unwrap()
+            .execute("INSERT INTO test (value) VALUES (?)", [test_value])
+            .unwrap();
+
+        // Read the value back
+        let result: String = pool
+            .get()
+            .unwrap()
+            .query_row("SELECT value FROM test WHERE id = 1", [], |row| row.get(0))
+            .unwrap();
+
+        assert_eq!(result, test_value);
+
+        drop(pool);
+        // Remove the test database
+        assert!(std::fs::remove_file("test_2.db").is_ok());
     }
 
-    #[test]
-    #[ignore]
-    fn test_if_can_read_from_db() {
-        let settings = settings::get().expect("Failed to load settings");
+    #[rstest]
+    fn test_create_four_tables() {
+        // Create a connection to the new database
+        let manager = r2d2_sqlite::SqliteConnectionManager::file("test_3.db");
+        let pool = establish_connection(&settings::get().unwrap(), Data::new(manager));
+        let conn = pool.get().unwrap();
 
-        // Create a mock SQLite connection manager for testing purposes
-        let mock_manager = Arc::new(Mutex::new(SqliteConnectionManager::file("test.db")));
+        // Create four tables with arbitrary names
+        let table_names = ["table1", "table2", "table3", "table4"];
 
-        // Call the establish_connection function with the mock settings and manager
-        let pool = establish_connection(&settings, &Data::new(mock_manager));
-
-        // Get a connection from the pool
-        let conn = pool.get().expect("Failed to get connection");
-
-        // Create a table
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY, name TEXT)",
-            rusqlite::params![],
-        )
-        .expect("Failed to create table");
-
-        // Insert a row into the table
-        conn.execute(
-            "INSERT INTO test (name) VALUES (?)",
-            rusqlite::params!["test"],
-        )
-        .expect("Failed to insert row");
-
-        // Query the table
-        let mut stmt = conn
-            .prepare("SELECT name FROM test")
-            .expect("Failed to prepare statement");
-        let rows = stmt
-            .query_map(rusqlite::params![], |row| row.get::<_, String>(0))
-            .expect("Failed to query table");
-
-        // Assert that the row was inserted
-        for name in rows {
-            assert_eq!(name.unwrap(), "test");
+        for name in &table_names {
+            conn.execute(
+                &format!("CREATE TABLE {name} (id INTEGER PRIMARY KEY, data TEXT NOT NULL)"),
+                [],
+            )
+            .unwrap();
         }
 
-        // Drop the table
-        conn.execute("DROP TABLE test", rusqlite::params![])
-            .expect("Failed to drop table");
+        // Verify tables exist by querying sqlite_master
+        let result: i32 = conn.query_row(
+        "SELECT COUNT(name) FROM sqlite_master WHERE type='table' AND name IN (:1, :2, :3, :4)",
+        [
+	    &table_names[0],
+	    &table_names[1],
+	    &table_names[2],
+	    &table_names[3],
+	],
+
+        |row| row.get(0),
+    ).unwrap();
+
+        assert_eq!(result, 4);
+
+        drop(conn);
+        // Remove the test database
+        assert!(std::fs::remove_file("test_3.db").is_ok());
+    }
+
+    // Helper function to get the count of items
+    fn get_count(pool: &Pool<SqliteConnectionManager>) -> usize {
+        let conn = pool.get().unwrap();
+        let query = "SELECT COUNT(*) FROM test_table";
+        let count: usize = conn
+            .query_row(query, [], |row| row.get(0))
+            .unwrap_or_default();
+        count
+    }
+
+    // Helper function to insert items
+    fn insert_items(pool: &Pool<SqliteConnectionManager>, range: std::ops::Range<usize>) {
+        let mut handles = vec![];
+
+        // Create the table
+        let conn = pool.get().unwrap();
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS test_table (id INTEGER PRIMARY KEY, value TEXT NOT NULL)",
+            [],
+        )
+        .unwrap();
+
+        for i in range {
+            let pool = pool.clone();
+            let handle = spawn(move || {
+                let conn = pool.get().unwrap();
+
+                // Insert an item
+                let query = "INSERT INTO test_table (id, value) VALUES (?, ?)";
+                conn.execute(query, (&i, &format!("item {i}"))).unwrap();
+            });
+            handles.push(handle);
+        }
+
+        // Wait for all writers to complete
+        for handle in handles {
+            handle.join().unwrap();
+        }
     }
 }

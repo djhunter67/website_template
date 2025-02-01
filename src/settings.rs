@@ -49,6 +49,7 @@ pub struct Sqlite {
     pub path: String,
     pub schema: String,
     pub pool_size: u32,
+    pub connection_timeout: u64,
 }
 
 #[derive(Deserialize, Clone)]

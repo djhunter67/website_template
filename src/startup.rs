@@ -2,7 +2,6 @@ use crate::endpoints::{health, index, templates};
 use crate::settings::Settings;
 use actix_web::web::Data;
 use actix_web::{http::KeepAlive, middleware, App, HttpServer};
-use r2d2_sqlite::SqliteConnectionManager;
 use std::net;
 use tracing::{debug, info, instrument, warn};
 
@@ -18,10 +17,11 @@ fn run(
     listener: std::net::TcpListener,
     settings: Settings,
 ) -> Result<actix_web::dev::Server, std::io::Error> {
-    let pool: SqliteConnectionManager = SqliteConnectionManager::file(settings.sqlite.path);
+    // let pool: SqliteConnectionManager = SqliteConnectionManager::file(settings.sqlite.path);
 
     // Redis connection pool
-    // let pool = r2d2::Pool::new(sqlite_manager).expect("Failed to create the connection pool");
+    let pool = r2d2_redis::RedisConnectionManager::new(settings.redis.url.clone())
+        .expect("Failed to create Redis connection pool");
 
     // Connect to the MongoDB database
     let db_data = Data::new(pool);

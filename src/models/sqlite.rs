@@ -5,7 +5,7 @@ use crate::settings::Settings;
 use actix_web::web::Data;
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
-use tracing::instrument;
+use tracing::{info, instrument};
 
 #[must_use]
 #[instrument(
@@ -27,6 +27,7 @@ pub fn establish_connection(
     settings: &Settings,
     manager: Data<SqliteConnectionManager>,
 ) -> Pool<SqliteConnectionManager> {
+    info!("Establishing a connection to the SQLite database");
     r2d2::Pool::builder()
         .max_size(settings.sqlite.pool_size)
         .connection_timeout(Duration::from_secs(settings.sqlite.connection_timeout))
@@ -48,7 +49,7 @@ mod tests {
     use super::*;
 
     #[rstest]
-    fn test_can_write_to_db() {
+    fn test_can_write_to_sqlite() {
         let manager = r2d2_sqlite::SqliteConnectionManager::file("test.db");
         let pool = establish_connection(&settings::get().unwrap(), Data::new(manager));
         let conn = pool.get().unwrap();
@@ -64,7 +65,6 @@ mod tests {
         let result: String = conn
             .query_row("SELECT name FROM test WHERE id = 1", [], |row| row.get(0))
             .unwrap();
-        assert_eq!(result, "Hello");
 
         drop(conn);
 
@@ -73,28 +73,53 @@ mod tests {
 
         // Test if the database was removed
         assert!(std::fs::metadata("test.db").is_err());
+
+        assert_eq!(result, "Hello");
     }
 
     #[rstest]
-    fn test_single_writer() {
+    fn test_single_writer_sqlite() {
         // Create a connection pool
         let manager = r2d2_sqlite::SqliteConnectionManager::file("test_1.db");
         let pool = establish_connection(&settings::get().unwrap(), Data::new(manager));
 
         // Insert 5 items using a for loop
-        insert_items(&pool, 0..5);
+        let mut handles = vec![];
 
-        // Verify the count matches
-        assert_eq!(get_count(&pool), 5);
+        // Create the table
+        let conn = pool.get().unwrap();
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS test_table (id INTEGER PRIMARY KEY, value TEXT NOT NULL)",
+            [],
+        )
+        .unwrap();
 
-        drop(pool);
+        drop(conn);
+
+        for i in 0..5 {
+            let pool = pool.clone();
+            let handle = spawn(move || {
+                let conn = pool.get().unwrap();
+
+                // Insert an item
+                let query = "INSERT INTO test_table (id, value) VALUES (?, ?)";
+                conn.execute(query, (&i, &format!("item {i}"))).unwrap();
+            });
+            handles.push(handle);
+        }
+
+        // Wait for all writers to complete
+        for handle in handles {
+            handle.join().unwrap();
+        }
 
         // Remove the test database
         assert!(std::fs::remove_file("test_1.db").is_ok());
+        assert_eq!(get_count(&pool), 5);
     }
 
     #[rstest]
-    fn test_write_and_read() {
+    fn test_write_and_read_sqlite() {
         let manager = r2d2_sqlite::SqliteConnectionManager::file("test_2.db");
         let pool = establish_connection(&settings::get().unwrap(), Data::new(manager));
 
@@ -132,7 +157,7 @@ mod tests {
     }
 
     #[rstest]
-    fn test_create_four_tables() {
+    fn test_create_four_tables_sqlite() {
         // Create a connection to the new database
         let manager = r2d2_sqlite::SqliteConnectionManager::file("test_3.db");
         let pool = establish_connection(&settings::get().unwrap(), Data::new(manager));
@@ -177,35 +202,5 @@ mod tests {
             .query_row(query, [], |row| row.get(0))
             .unwrap_or_default();
         count
-    }
-
-    // Helper function to insert items
-    fn insert_items(pool: &Pool<SqliteConnectionManager>, range: std::ops::Range<usize>) {
-        let mut handles = vec![];
-
-        // Create the table
-        let conn = pool.get().unwrap();
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS test_table (id INTEGER PRIMARY KEY, value TEXT NOT NULL)",
-            [],
-        )
-        .unwrap();
-
-        for i in range {
-            let pool = pool.clone();
-            let handle = spawn(move || {
-                let conn = pool.get().unwrap();
-
-                // Insert an item
-                let query = "INSERT INTO test_table (id, value) VALUES (?, ?)";
-                conn.execute(query, (&i, &format!("item {i}"))).unwrap();
-            });
-            handles.push(handle);
-        }
-
-        // Wait for all writers to complete
-        for handle in handles {
-            handle.join().unwrap();
-        }
     }
 }

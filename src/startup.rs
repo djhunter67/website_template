@@ -1,4 +1,5 @@
 use crate::endpoints::{health, index, templates};
+use crate::models::r2d2_mongodb::client_manager::MongoClientManager;
 use crate::settings::Settings;
 use actix_web::web::Data;
 use actix_web::{http::KeepAlive, middleware, App, HttpServer};
@@ -19,7 +20,7 @@ pub const PARSE_COUNT: u8 = 9;
     level = "info",
     skip(listener, settings)
 )]
-fn run(
+async fn run(
     listener: std::net::TcpListener,
     settings: Settings,
 ) -> Result<actix_web::dev::Server, std::io::Error> {
@@ -45,10 +46,15 @@ fn run(
         NoTls,
     );
 
+    let mongo_pool: MongoClientManager = MongoClientManager::from_uri(&settings.mongo.uri)
+        .await
+        .expect("Failed to create MongoDB connection pool");
+
     // Connect to the MongoDB database
     let db_redis = Data::new(redis_pool);
     let db_sqlite = Data::new(sqlite_pool);
     let db_postgres = Data::new(postgres_pool);
+    let db_mongo = Data::new(mongo_pool);
     // info!("Processed DB connection pool for distribution");
 
     let server = HttpServer::new(move || {
@@ -59,6 +65,7 @@ fn run(
             .app_data(db_redis.clone())
             .app_data(db_sqlite.clone())
             .app_data(db_postgres.clone())
+            .app_data(db_mongo.clone())
             .service(templates::favicon)
             .service(templates::logomain)
             .service(templates::stylesheet)
@@ -128,7 +135,7 @@ impl Application {
         debug!("Binding the TCP port: {address}");
         let listener: net::TcpListener = net::TcpListener::bind(&address)?;
         let port = listener.local_addr()?.port();
-        let server = run(listener, settings.clone())?;
+        let server = run(listener, settings.clone()).await?;
 
         Ok(Self { port, server })
     }

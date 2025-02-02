@@ -4,11 +4,13 @@ application:
 mongo:
  username: ""
  password: ""
- port: 27017
- host: "10.20.30.20"
- db: "bloodhound"
- collection: "bands"
+ uri: "mongodb://10.20.30.20:27017"
+ db: "template_db"
+ collection: "template"
  require_auth: false
+ pool_size: 1
+ connection_timeout: 1
+ 
 
 redis:
   url: "redis://10.20.30.5:6379"
@@ -21,7 +23,7 @@ redis:
 sqlite:
   path: "senzor.db"
   schema: "static/schema.sql"
-  pool_size: 10
+  pool_size: 1
   connection_timeout: 5
 
 postgres:

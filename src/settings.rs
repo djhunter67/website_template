@@ -39,11 +39,12 @@ pub struct Redis {
 pub struct Mongo {
     pub username: String,
     pub password: String,
-    pub port: u32,
-    pub host: String,
+    pub uri: String,
     pub db: String,
     pub collection: String,
     pub require_auth: bool,
+    pub pool_size: u8,
+    pub connection_timeout: u8,
 }
 
 #[derive(Deserialize, Clone, Debug)]

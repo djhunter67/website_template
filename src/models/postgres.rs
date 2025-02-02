@@ -20,8 +20,6 @@ pub fn establish_connection(
 ) -> Pool<PostgresConnectionManager<NoTls>> {
     let manager = Arc::into_inner(postgres_pool.into()).expect("No connection found");
 
-    // Pool::new(manager).expect("Failed to create the connection pool")
-
     Pool::builder()
         .max_size(1)
         .connection_timeout(Duration::from_secs(
@@ -64,7 +62,7 @@ mod tests {
     }
 
     #[rstest]
-    fn test_can_write_and_read(manager: PostgresConnectionManager<NoTls>) {
+    fn test_can_write_and_read_postgres(manager: PostgresConnectionManager<NoTls>) {
         let pool = establish_connection(&settings::get().unwrap(), manager);
 
         let mut conn = pool.get().unwrap();
@@ -98,7 +96,7 @@ mod tests {
     }
 
     #[rstest]
-    fn test_count_writes(manager: PostgresConnectionManager<NoTls>) {
+    fn test_count_writes_postgres(manager: PostgresConnectionManager<NoTls>) {
         let settings = settings::get().unwrap();
         let pool = establish_connection(&settings, manager);
 
@@ -134,7 +132,7 @@ mod tests {
     }
 
     #[rstest]
-    fn test_can_create_four_tables(manager: PostgresConnectionManager<NoTls>) {
+    fn test_can_create_four_tables_postgres(manager: PostgresConnectionManager<NoTls>) {
         let settings = settings::get().unwrap();
         let pool = establish_connection(&settings, manager);
 

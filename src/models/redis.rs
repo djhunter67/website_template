@@ -63,7 +63,7 @@ mod tests {
     }
 
     #[rstest]
-    fn test_can_write_to_db(pool: Pool<RedisConnectionManager>) {
+    fn test_can_write_to_redis(pool: Pool<RedisConnectionManager>) {
         let mut conn = pool.get().unwrap();
 
         // Test query
@@ -76,7 +76,7 @@ mod tests {
     }
 
     #[rstest]
-    fn test_can_write_to_db_concurrently(pool: Pool<RedisConnectionManager>) {
+    fn test_can_write_to_redis_concurrently(pool: Pool<RedisConnectionManager>) {
         let handles = (0..10)
             .map(|_| {
                 let pool = pool.clone();
@@ -96,7 +96,7 @@ mod tests {
     }
 
     #[rstest]
-    fn test_single_writer(pool: Pool<RedisConnectionManager>) {
+    fn test_single_writer_redis(pool: Pool<RedisConnectionManager>) {
         // Insert 5 items using a for loop
         let mut conn = pool.get().unwrap();
         conn.set::<&str, &str, String>("test_2", "test_2").unwrap();
@@ -110,7 +110,7 @@ mod tests {
     }
 
     #[rstest]
-    fn test_write_and_read(pool: Pool<RedisConnectionManager>) {
+    fn test_write_and_read_redis(pool: Pool<RedisConnectionManager>) {
         // Create table if not exists
         let mut conn = pool.get().unwrap();
 
@@ -131,7 +131,7 @@ mod tests {
     }
 
     #[rstest]
-    fn test_basic_connection_and_ping(pool: Pool<RedisConnectionManager>) {
+    fn test_basic_connection_and_ping_redis(pool: Pool<RedisConnectionManager>) {
         let mut conn = pool.get().unwrap();
         // Basic ping command to verify connection
         let result = conn.req_command(Cmd::new().arg("PING")).unwrap();
@@ -139,7 +139,7 @@ mod tests {
     }
 
     #[rstest]
-    fn test_string_operations(pool: Pool<RedisConnectionManager>) {
+    fn test_string_operations_redis(pool: Pool<RedisConnectionManager>) {
         // Establish a connection
         let mut conn = pool.get().unwrap();
 
@@ -159,7 +159,7 @@ mod tests {
     }
 
     #[rstest]
-    fn test_list_operations(pool: Pool<RedisConnectionManager>) {
+    fn test_list_operations_redis(pool: Pool<RedisConnectionManager>) {
         // Establish a connection
         let mut conn = pool.get().unwrap();
 
@@ -196,7 +196,7 @@ mod tests {
     }
 
     #[rstest]
-    fn test_key_expiration(pool: Pool<RedisConnectionManager>) {
+    fn test_key_expiration_redis(pool: Pool<RedisConnectionManager>) {
         // Establish a connection
         let mut conn = pool.get().unwrap();
 

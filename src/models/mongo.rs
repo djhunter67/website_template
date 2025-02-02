@@ -21,7 +21,7 @@ use tracing::{info, instrument};
 ///  - `mongodb::error::Error` if the connection pool could not be created
 /// # Panics
 ///  - If the connection pool could not be created
-pub fn establish_connection(
+pub async fn establish_connection(
     settings: &settings::Mongo,
     manager: Data<MongoClientManager>,
 ) -> Collection<Document> {
@@ -39,45 +39,85 @@ pub fn establish_connection(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::future_not_send)]
+#[allow(clippy::unwrap_used)]
 mod tests {
+    use std::time::Duration;
 
     use mongodb::{
         bson::{doc, Bson, Document},
+        options::{ClientOptions, ServerAddress},
         Collection,
     };
     use r2d2::ManageConnection;
-    use rstest::{fixture, rstest};
+    use rstest::rstest;
 
-    use crate::settings::{self, Mongo, Settings};
+    use crate::settings::{self, Settings};
 
     use super::*;
 
-    #[fixture]
-    async fn manager() -> Collection<Document> {
+    #[rstest]
+    #[tokio::test]
+    async fn test_can_establish_connection() {
         let settings: Settings = settings::get().unwrap();
-        let manager = MongoClientManager::from_uri(&settings.mongo.uri)
-            .await
-            .unwrap();
 
-        let mongo = Mongo {
-            username: "root".to_string(),
-            password: "password".to_string(),
-            require_auth: false,
-            db: "test".to_string(),
-            collection: "test".to_string(),
-            uri: settings.mongo.uri,
-            pool_size: 16,
-            connection_timeout: 5,
-        };
+        let manager = MongoClientManager::new(
+            ClientOptions::builder()
+                .app_name(settings.mongo.db.clone())
+                .hosts(vec![ServerAddress::Tcp {
+                    host: settings.mongo.host.clone(),
+                    port: Some(settings.mongo.port),
+                }])
+                .max_pool_size(Some(settings.mongo.pool_size.into()))
+                .connect_timeout(Duration::from_secs(
+                    settings.mongo.connection_timeout.into(),
+                ))
+                .build(),
+        );
 
-        establish_connection(&mongo, Data::new(manager))
+        let pool = establish_connection(&settings::get().unwrap().mongo, Data::new(manager)).await;
+
+        // Assert that a connection has been established
+        assert!(pool.estimated_document_count().await.is_ok());
     }
 
     #[rstest]
     #[tokio::test]
-    async fn test_can_write_to_mongo(#[future] manager: Collection<Document>) {
-        let collection = manager.await;
+    async fn test_fail_to_connect() {
+        let manager = MongoClientManager::new(
+            ClientOptions::builder()
+                .app_name(Some(String::from("testing")))
+                .hosts(vec![ServerAddress::Tcp {
+                    host: "localhost".to_string(),
+                    port: Some(27017),
+                }])
+                .max_pool_size(Some(10))
+                .connect_timeout(Duration::from_secs(1))
+                .server_selection_timeout(Duration::from_secs(1))
+                .build(),
+        );
+
+        let pool = establish_connection(&settings::get().unwrap().mongo, Data::new(manager)).await;
+
+        // Assert that a connection has been established
+        assert!(pool.estimated_document_count().await.is_err());
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_can_write_to_mongo() {
+        let settings: Settings = settings::get().unwrap();
+
+        let conn = MongoClientManager::from_uri(&settings.mongo.uri)
+            .await
+            .unwrap()
+            .connect()
+            .unwrap();
+
+        // let conn = pool.get().unwrap();
+
+        // Test query the document database, mongodb
+        let db = conn.database("test");
+        let collection = db.collection("test");
 
         // Test query
         let result = collection
@@ -85,15 +125,26 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(result.inserted_id.ne(&Bson::Null));
+        // Drop the database
+        assert!(db.drop().await.is_ok());
 
-        // test_cleanup(&settings::get().unwrap()).await;
+        assert!(result.inserted_id.ne(&Bson::Null));
     }
 
     #[rstest]
     #[tokio::test]
-    async fn test_can_read_from_mongo(#[future] manager: Collection<Document>) {
-        let collection = manager.await;
+    async fn test_can_read_from_mongo() {
+        let settings: Settings = settings::get().unwrap();
+
+        let conn = MongoClientManager::from_uri(&settings.mongo.uri)
+            .await
+            .unwrap()
+            .connect()
+            .unwrap();
+
+        // Test query the document database, mongodb
+        let db = conn.database("test_1");
+        let collection = db.collection("test_1");
 
         // Test query
         let _ = collection.insert_one(doc! { "name": "John Dae" }).await;
@@ -104,15 +155,26 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(result.unwrap().get_str("name").unwrap().eq("John Dae"));
+        // Drop the database
+        assert!(db.drop().await.is_ok());
 
-        // test_cleanup(&settings::get().unwrap()).await;
+        assert!(result.unwrap().get_str("name").unwrap().eq("John Dae"));
     }
 
     #[rstest]
     #[tokio::test]
-    async fn test_can_update_mongo(#[future] manager: Collection<Document>) {
-        let collection = manager.await;
+    async fn test_can_update_mongo() {
+        let settings: Settings = settings::get().unwrap();
+
+        let conn = MongoClientManager::from_uri(&settings.mongo.uri)
+            .await
+            .unwrap()
+            .connect()
+            .unwrap();
+
+        // Test query the document database, mongodb
+        let db = conn.database("test_2");
+        let collection = db.collection("test_2");
 
         // Test query
         let _ = collection.insert_one(doc! { "name": "John Dae" }).await;
@@ -131,6 +193,9 @@ mod tests {
             .await
             .unwrap();
 
+        // Drop the database
+        assert!(db.drop().await.is_ok());
+
         assert!(result.modified_count.eq(&1));
 
         assert!(changed_result
@@ -138,14 +203,22 @@ mod tests {
             .get_str("name")
             .unwrap()
             .eq("John OtherDoe"));
-
-        // test_cleanup(&settings::get().unwrap()).await;
     }
 
     #[rstest]
     #[tokio::test]
-    async fn test_not_found_mongo(#[future] manager: Collection<Document>) {
-        let collection: Collection<Document> = manager.await;
+    async fn test_not_found_mongo() {
+        let settings: Settings = settings::get().unwrap();
+
+        let conn = MongoClientManager::from_uri(&settings.mongo.uri)
+            .await
+            .unwrap()
+            .connect()
+            .unwrap();
+
+        // Test query the document database, mongodb
+        let db = conn.database("test_3");
+        let collection: Collection<Document> = db.collection("test_3");
 
         // insert a document
         let _ = collection
@@ -158,19 +231,9 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(result.is_none());
-        test_cleanup(&settings::get().unwrap()).await;
-    }
-
-    async fn test_cleanup(settings: &Settings) {
-        let manager = MongoClientManager::from_uri(&settings.mongo.uri)
-            .await
-            .unwrap()
-            .connect()
-            .unwrap()
-            .database("test");
-
         // Drop the database
-        manager.drop().await.unwrap();
+        assert!(db.drop().await.is_ok());
+
+        assert!(result.is_none());
     }
 }

@@ -40,6 +40,8 @@ pub struct Mongo {
     pub username: String,
     pub password: String,
     pub uri: String,
+    pub host: String,
+    pub port: u16,
     pub db: String,
     pub collection: String,
     pub require_auth: bool,

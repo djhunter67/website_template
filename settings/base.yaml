@@ -5,6 +5,8 @@ mongo:
  username: ""
  password: ""
  uri: "mongodb://10.20.30.20:27017"
+ host: "10.20.30.20"
+ port: 27017
  db: "template_db"
  collection: "template"
  require_auth: false
@@ -24,7 +26,7 @@ sqlite:
   path: "senzor.db"
   schema: "static/schema.sql"
   pool_size: 1
-  connection_timeout: 5
+  connection_timeout: 1
 
 postgres:
   username: "djhunter67"

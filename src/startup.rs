@@ -3,6 +3,7 @@ use crate::models::r2d2_mongodb::client_manager::MongoClientManager;
 use crate::settings::Settings;
 use actix_web::web::Data;
 use actix_web::{http::KeepAlive, middleware, App, HttpServer};
+use mongodb::options::{ClientOptions, ServerAddress};
 use r2d2_postgres::postgres::config::SslMode;
 use r2d2_postgres::postgres::{Config, NoTls};
 use r2d2_postgres::PostgresConnectionManager;
@@ -46,9 +47,22 @@ async fn run(
         NoTls,
     );
 
-    let mongo_pool: MongoClientManager = MongoClientManager::from_uri(&settings.mongo.uri)
-        .await
-        .expect("Failed to create MongoDB connection pool");
+    let mongo_pool: MongoClientManager = MongoClientManager::new(
+        ClientOptions::builder()
+            .app_name(settings.mongo.db.clone())
+            .hosts(vec![ServerAddress::Tcp {
+                host: settings.mongo.host.clone(),
+                port: Some(settings.mongo.port),
+            }])
+            .max_pool_size(Some(settings.mongo.pool_size.into()))
+            .connect_timeout(Duration::from_secs(
+                settings.mongo.connection_timeout.into(),
+            ))
+            .server_selection_timeout(Duration::from_secs(
+                settings.mongo.connection_timeout.into(),
+            ))
+            .build(),
+    );
 
     // Connect to the MongoDB database
     let db_redis = Data::new(redis_pool);

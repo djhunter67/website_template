@@ -26,10 +26,11 @@ pub struct Secret {
 #[derive(Deserialize, Clone, Debug)]
 pub struct Redis {
     pub url: String,
-    pub pool_max_open: u64,
-    pub pool_max_idle: u64,
-    pub pool_timeout_seconds: u64,
-    pub pool_expire_seconds: u64,
+    pub pool_size: u32,
+    pub pool_max_open: u32,
+    pub pool_max_idle: u32,
+    pub pool_timeout_seconds: u32,
+    pub pool_expire_seconds: u32,
 }
 
 /// Mongo setting for the entire application

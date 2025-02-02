@@ -2,7 +2,13 @@ use crate::endpoints::{health, index, templates};
 use crate::settings::Settings;
 use actix_web::web::Data;
 use actix_web::{http::KeepAlive, middleware, App, HttpServer};
+use r2d2_postgres::postgres::config::SslMode;
+use r2d2_postgres::postgres::{Config, NoTls};
+use r2d2_postgres::PostgresConnectionManager;
+use r2d2_redis::RedisConnectionManager;
+use r2d2_sqlite::SqliteConnectionManager;
 use std::net;
+use std::time::Duration;
 use tracing::{debug, info, instrument, warn};
 
 pub const PARSE_COUNT: u8 = 9;
@@ -17,14 +23,32 @@ fn run(
     listener: std::net::TcpListener,
     settings: Settings,
 ) -> Result<actix_web::dev::Server, std::io::Error> {
-    // let pool: SqliteConnectionManager = SqliteConnectionManager::file(settings.sqlite.path);
+    let sqlite_pool: SqliteConnectionManager = SqliteConnectionManager::file(settings.sqlite.path);
+    let redis_pool: RedisConnectionManager =
+        r2d2_redis::RedisConnectionManager::new(settings.redis.url.clone())
+            .expect("Failed to create Redis connection redis_pool");
 
-    // Redis connection pool
-    let pool = r2d2_redis::RedisConnectionManager::new(settings.redis.url.clone())
-        .expect("Failed to create Redis connection pool");
+    let postgres_pool: PostgresConnectionManager<NoTls> = PostgresConnectionManager::new(
+        Config::new()
+            .user(&settings.postgres.username)
+            .password(settings.postgres.password.clone())
+            .dbname(&settings.postgres.db)
+            .host(&settings.postgres.host)
+            .port(settings.postgres.port)
+            .application_name(&settings.postgres.app_name)
+            .connect_timeout(Duration::from_secs(
+                settings.postgres.connection_timeout.into(),
+            ))
+            .ssl_mode(SslMode::Prefer)
+            .options(format!("--work_mem={}", settings.postgres.working_memory).as_str())
+            .clone(),
+        NoTls,
+    );
 
     // Connect to the MongoDB database
-    let db_data = Data::new(pool);
+    let db_redis = Data::new(redis_pool);
+    let db_sqlite = Data::new(sqlite_pool);
+    let db_postgres = Data::new(postgres_pool);
     // info!("Processed DB connection pool for distribution");
 
     let server = HttpServer::new(move || {
@@ -32,7 +56,9 @@ fn run(
             .wrap(middleware::Logger::default())
             .wrap(middleware::Compress::default())
             // .wrap(middleware::DefaultHeaders::new().add(("X-Version", env!("CARGO_PKG_VERSION"))))
-            .app_data(db_data.clone())
+            .app_data(db_redis.clone())
+            .app_data(db_sqlite.clone())
+            .app_data(db_postgres.clone())
             .service(templates::favicon)
             .service(templates::logomain)
             .service(templates::stylesheet)

@@ -11,6 +11,7 @@ pub struct Settings {
     pub mongo: Mongo,
     pub sqlite: Sqlite,
     pub redis: Redis,
+    pub postgres: Postgres,
     pub secret: Secret,
     pub frontend_url: String,
 }
@@ -57,10 +58,13 @@ pub struct Sqlite {
 pub struct Postgres {
     pub username: String,
     pub password: String,
-    pub port: u32,
+    pub port: u16,
     pub host: String,
     pub db: String,
     pub schema: String,
+    pub app_name: String,
+    pub connection_timeout: u8,
+    pub working_memory: String,
 }
 
 /// Application's specific settings to expose `port`,

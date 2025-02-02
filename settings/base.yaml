@@ -24,12 +24,15 @@ sqlite:
   pool_size: 10
   connection_timeout: 5
 
-postgresql:
-  username: "postgres"
-  password: ""
+postgres:
+  username: "djhunter67"
+  password: "PNF27156"
   port: 5432
   host: "10.20.30.23"
-  db: ""
-  require_auth: false
+  db: "test"
+  require_auth: true
   schema: "static/schema.sql"
+  app_name: "web_template"
+  connection_timeout: 1
+  working_memory: "256MB"
 

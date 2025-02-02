@@ -39,6 +39,7 @@ askama = "0.12.1"
 config = { version = "0.15.7", features = ["yaml"] }
 dotenv = "0.15.0"
 r2d2 = "0.8.10"
+r2d2_postgres = "0.18.2"
 r2d2_redis = "0.14.0"
 r2d2_sqlite = { version = "0.26.0", features = ["bundled"] }
 serde = { version = "1.0.217", features = ["derive"] }

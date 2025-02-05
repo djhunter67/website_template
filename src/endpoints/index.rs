@@ -20,6 +20,9 @@ pub async fn index() -> HttpResponse {
         title: "Home",
         content: vec!["friendly", "messages"],
         version,
+        linkedin: "https://www.linkedin.com/in/christerpher",
+        github: "https://github.com/djhunter67",
+        source_url: "localhost:8000",
     };
 
     let rendered = var_name.render().expect("Failed to render template");

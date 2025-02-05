@@ -88,6 +88,8 @@ async fn run(
             .service(templates::response_targets)
             .service(templates::sse)
             .service(templates::action_script)
+            .service(templates::prof_headshot)
+            .service(templates::usmc_patrolling)
             .service(index::index)
             .service(health::health_check)
     })

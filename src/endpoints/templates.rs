@@ -11,6 +11,9 @@ pub struct IndexTemplate<'a> {
     pub title: &'a str,
     pub content: Vec<&'a str>,
     pub version: &'a str,
+    pub github: &'a str,
+    pub linkedin: &'a str,
+    pub source_url: &'a str,
 }
 
 #[derive(Template)]
@@ -35,11 +38,7 @@ impl<'a> ErrorPage<'a> {
 }
 
 #[get("/favicon")]
-#[instrument(
-    name = "Serving favicon",
-    level = "info",
-    target = "web_app_bloodhound"
-)]
+#[instrument(name = "Serving favicon", level = "info", target = "portfolio_site")]
 async fn favicon() -> Result<NamedFile, actix_web::Error> {
     info!("Serving favicon");
     let filename = "head_shot.ico";
@@ -57,7 +56,7 @@ async fn favicon() -> Result<NamedFile, actix_web::Error> {
 }
 
 #[get("/logomain")]
-#[instrument(name = "Serving logo", level = "info", target = "web_app_bloodhound")]
+#[instrument(name = "Serving logo", level = "info", target = "portfolio_site")]
 async fn logomain() -> Result<NamedFile, actix_web::Error> {
     info!("Serving logo");
     let filename = "logomain.jpeg";
@@ -75,11 +74,7 @@ async fn logomain() -> Result<NamedFile, actix_web::Error> {
 }
 
 #[get("/stylesheet")]
-#[instrument(
-    name = "Serving stylesheet",
-    level = "info",
-    target = "web_app_bloodhound"
-)]
+#[instrument(name = "Serving stylesheet", level = "info", target = "portfolio_site")]
 async fn stylesheet() -> impl Responder {
     info!("Serving stylesheet");
     let file = include_str!("../../static/css/style.css");
@@ -87,11 +82,7 @@ async fn stylesheet() -> impl Responder {
 }
 
 #[get("/style.css.map")]
-#[instrument(
-    name = "Serving source map",
-    level = "info",
-    target = "web_app_bloodhound"
-)]
+#[instrument(name = "Serving source map", level = "info", target = "portfolio_site")]
 async fn source_map() -> impl Responder {
     info!("Serving source map");
     let file = include_str!("../../static/css/style.css.map");
@@ -104,7 +95,7 @@ async fn source_map() -> impl Responder {
 #[instrument(
     name = "Serving htmx.min.js",
     level = "info",
-    target = "web_app_bloodhound"
+    target = "portfolio_site"
 )]
 async fn htmx() -> Result<NamedFile, actix_web::Error> {
     info!("Serving htmx.min.js");
@@ -124,7 +115,7 @@ async fn htmx() -> Result<NamedFile, actix_web::Error> {
 #[instrument(
     name = "Serving response-targets.js",
     level = "info",
-    target = "web_app_bloodhound"
+    target = "portfolio_site"
 )]
 async fn response_targets() -> Result<NamedFile, actix_web::Error> {
     info!("Serving response-targets.js");
@@ -141,7 +132,7 @@ async fn response_targets() -> Result<NamedFile, actix_web::Error> {
 }
 
 #[get("/sse")]
-#[instrument(name = "Serving sse.js", level = "info", target = "web_app_bloodhound")]
+#[instrument(name = "Serving sse.js", level = "info", target = "portfolio_site")]
 async fn sse() -> Result<NamedFile, actix_web::Error> {
     info!("Serving sse.js");
 
@@ -160,13 +151,55 @@ async fn sse() -> Result<NamedFile, actix_web::Error> {
 #[instrument(
     name = "Serving action_script.js",
     level = "info",
-    target = "web_app_bloodhound"
+    target = "portfolio_site"
 )]
 async fn action_script() -> Result<NamedFile, actix_web::Error> {
     info!("Serving action_script.js");
 
-    let filename = "time-dilation.js";
+    let filename = "action_script.js";
     let path: PathBuf = ["static", "js", filename].iter().collect();
+
+    match NamedFile::open(path) {
+        Ok(file) => Ok(file),
+        Err(err) => {
+            error!("Error opening file -- {filename} -- : {err:#?}");
+            Err(actix_web::error::ErrorInternalServerError(err))
+        }
+    }
+}
+
+#[get("/prof_headshot")]
+#[instrument(
+    name = "Serving prof_headshot.jpg",
+    level = "info",
+    target = "portfolio_site"
+)]
+async fn prof_headshot() -> Result<NamedFile, actix_web::Error> {
+    info!("Serving prof_headshot.jpg");
+
+    let filename = "head_shot.png";
+    let path: PathBuf = ["static", "imgs", filename].iter().collect();
+
+    match NamedFile::open(path) {
+        Ok(file) => Ok(file),
+        Err(err) => {
+            error!("Error opening file -- {filename} -- : {err:#?}");
+            Err(actix_web::error::ErrorInternalServerError(err))
+        }
+    }
+}
+
+#[get("/usmc_patrolling")]
+#[instrument(
+    name = "Serving usmc_patrolling.jpg",
+    level = "info",
+    target = "portfolio_site"
+)]
+async fn usmc_patrolling() -> Result<NamedFile, actix_web::Error> {
+    info!("Serving usmc_patrolling.jpg");
+
+    let filename = "usmc_patrolling.jpg";
+    let path: PathBuf = ["static", "imgs", filename].iter().collect();
 
     match NamedFile::open(path) {
         Ok(file) => Ok(file),

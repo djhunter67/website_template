@@ -11,4 +11,4 @@ The backend will be written in `Rust`.  The `Actix-web` is the web server.  This
 The following sketch will be the template for the design of this third iteration of my portfolio site:
 
 
-![Hand sketched design](design_sketch.pdf)
+![Hand sketched design](design_sketch.png)

@@ -1,4 +1,4 @@
-# Portfolio Site
+# Portfolio Site V3
 
 ## Frontend
 The frontend will consist of `HTML`, `HTMX`, and `SCSS`.  `Javascript` will be used as a last resort and if needed,  it will be `Typescript`.  The development platform will be `Firefox`, my IDE will be `emacs`, and the template engine will be a `Jinja2` clone called `Askama`.
@@ -11,3 +11,4 @@ The backend will be written in `Rust`.  The `Actix-web` is the web server.  This
 The following sketch will be the template for the design of this third iteration of my portfolio site:
 
 
+![Hand sketched design](design_sketch.pdf)

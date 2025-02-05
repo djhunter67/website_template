@@ -42,7 +42,7 @@ impl<'a> ErrorPage<'a> {
 )]
 async fn favicon() -> Result<NamedFile, actix_web::Error> {
     info!("Serving favicon");
-    let filename = "ca_icon.ico";
+    let filename = "head_shot.ico";
     let path: PathBuf = ["static", "imgs", filename].iter().collect();
 
     let file = match NamedFile::open(path) {
@@ -156,23 +156,23 @@ async fn sse() -> Result<NamedFile, actix_web::Error> {
     }
 }
 
-// #[get("/action_script")]
-// #[instrument(
-//     name = "Serving action_script.js",
-//     level = "info",
-//     target = "web_app_bloodhound"
-// )]
-// async fn action_script() -> Result<NamedFile, actix_web::Error> {
-//     info!("Serving action_script.js");
+#[get("/action_script")]
+#[instrument(
+    name = "Serving action_script.js",
+    level = "info",
+    target = "web_app_bloodhound"
+)]
+async fn action_script() -> Result<NamedFile, actix_web::Error> {
+    info!("Serving action_script.js");
 
-//     let filename = "time-dilation.js";
-//     let path: PathBuf = ["static", "js", filename].iter().collect();
+    let filename = "time-dilation.js";
+    let path: PathBuf = ["static", "js", filename].iter().collect();
 
-//     match NamedFile::open(path) {
-//         Ok(file) => Ok(file),
-//         Err(err) => {
-//             error!("Error opening file -- {filename} -- : {err:#?}");
-//             Err(actix_web::error::ErrorInternalServerError(err))
-//         }
-//     }
-// }
+    match NamedFile::open(path) {
+        Ok(file) => Ok(file),
+        Err(err) => {
+            error!("Error opening file -- {filename} -- : {err:#?}");
+            Err(actix_web::error::ErrorInternalServerError(err))
+        }
+    }
+}

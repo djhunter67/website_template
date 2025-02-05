@@ -1,6 +1,7 @@
-{% extends "base.html" %} {% block title %} {{ title }} {% endblock %} {% block
-head %} {% endblock %} {% block individual_page_contents %}
+{% extends "base.html" %} {% block title %} {{ title }} {{ version  }} {% endblock %} {% block head %} {% endblock %} {% block individual_page_contents %}
 
 <h1> Index Page </h1>
+<h2>Content: {{ content.first().unwrap() }}</h2>
+
 
 {% call super() %} {% endblock %}

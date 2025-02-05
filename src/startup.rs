@@ -87,6 +87,7 @@ async fn run(
             .service(templates::htmx)
             .service(templates::response_targets)
             .service(templates::sse)
+            .service(templates::action_script)
             .service(index::index)
             .service(health::health_check)
     })

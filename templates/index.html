@@ -1,77 +1,81 @@
 {% extends "base.html" %} {% block title %} {{ title }} {{ version  }} {% endblock %} {% block head %} {% endblock %} {% block individual_page_contents %}
 
-<nav id="nav">
-  <section id="nav__left">
-    <h1>{{ title }} {{ version }}</h1>
+<div id="landing">
+  <nav id="landing__nav">
+    <section id="landing__nav__left">
+      <h1>{{ title }} {{ version }}</h1>
+    </section>
+    <section id="landing__nav__middle">
+      <a href="#">Previous</a>
+      <a href="{{ source_url }}">Index</a>
+      <a href="#">Next</a>
+    </section>
+    <section id="landing__nav__right">
+      <a href="{{ source_url }}">Project</a>
+    </section>
+  </nav>
+
+  <section id="landing__splash">
+    <div id="landing__splash__headshot">
+      <figure>
+	<img src="/prof_headshot" alt="Professional Headshot" width="450px" height="300px">
+      </figure>
+    </div>
+    <aside id="landing__splash__name">
+      <h2>HUNTER</h2>
+      <h3>CHRISTERPHER</h3>
+    </aside>
   </section>
-  <section id="nav__middle">
-    <a href="#">Previous</a>
-    <a href="{{ source_url }}">Index</a>
-    <a href="#">Next</a>
+
+  <section id="landing__about">
+    <figure>
+      <img src="/usmc_patrolling" alt="USMC Patrolling" width="450" height="300">
+    </figure>
+
+    <div id="landing__about__text">
+      <h2>About Me</h2>
+      <p>
+	lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi. Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat. Duis semper. Duis arcu massa, scelerisque vitae, consequat in, pretium a, enim. Pellentesque congue. Ut in risus volutpat libero pharetra tempor. Cras vestibulum bibendum augue. Praesent egestas leo in pede. Praesent blandit odio eu enim. Pellentesque sed dui ut augue blandit sodales. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Aliquam nibh. Mauris ac mauris sed pede pellentesque fermentum. Maecenas adipiscing ante non diam sodales hendrerit.
+      </p>
+    </div>
   </section>
-  <section id="nav__right">
-    <a href="{{ source_url }}">Source</a>
+
+  <section id="landing__contact">
+    <h2>Contact Me</h2>
+
+    <form id="landing__contact__form">
+      <label for="name">Name</label>
+      <input type="text" id="name" name="name" required>
+
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" required>
+
+      <label for="message">Message</label>
+      <textarea id="message" name="message" required></textarea>
+
+      <button type="submit">Send</button>
+    </form>
+
+    <figure>
+      <img src="/hackathon" alt="Hackathon Win" width="300px" height="350px">
+    </figure>
+
+    <aside id="landing__contact__links">
+      <a href="
+	       {% if !github.is_empty() %}
+	       {{ github }}
+	       {% else %}
+	       #
+	       {% endif %}
+	       ">GitHub</a>
+      <a href="
+	       {% if !linkedin.is_empty() %}
+	       {{ linkedin }}
+	       {% else %}
+	       #
+	       {% endif %}
+	       ">LinkedIn</a>
+    </aside>
   </section>
-</nav>
-
-<section id="splash">
-  <figure>
-    <img src="/prof_headshot" alt="Professional Headshot" width="450" height="300">
-  </figure>
-  <aside id="splash__name">
-    <h2>HUNTER</h2>
-    <h3>CHRISTERPHER</h3>
-  </aside>
-</section>
-
-<section id="about">
-  <figure>
-    <img src="/usmc_patrolling" alt="USMC Patrolling" width="450" height="300">
-  </figure>
-
-  <div id="about__text">
-    <h2>About Me</h2>
-    <p>
-      lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi. Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat. Duis semper. Duis arcu massa, scelerisque vitae, consequat in, pretium a, enim. Pellentesque congue. Ut in risus volutpat libero pharetra tempor. Cras vestibulum bibendum augue. Praesent egestas leo in pede. Praesent blandit odio eu enim. Pellentesque sed dui ut augue blandit sodales. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Aliquam nibh. Mauris ac mauris sed pede pellentesque fermentum. Maecenas adipiscing ante non diam sodales hendrerit.
-    </p>
-  </div>
-</section>
-
-<section id="contact">
-  <h2>Contact Me</h2>
-
-  <form id="contact__form">
-    <label for="name">Name</label>
-    <input type="text" id="name" name="name" required>
-
-    <label for="email">Email</label>
-    <input type="email" id="email" name="email" required>
-
-    <label for="message">Message</label>
-    <textarea id="message" name="message" required></textarea>
-
-    <button type="submit">Send</button>
-  </form>
-
-  <figure>
-    <img src="/usmc_patrolling" alt="Hackathon Win">
-  </figure>
-
-  <aside id="contact__links">
-    <a href="
-	     {% if !github.is_empty() %}
-	     {{ github }}
-	     {% else %}
-	     #
-	     {% endif %}
-	     ">GitHub</a>
-    <a href="
-	     {% if !linkedin.is_empty() %}
-	     {{ linkedin }}
-	     {% else %}
-	     #
-	     {% endif %}
-	     ">LinkedIn</a>
-  </aside>
-</section>
+</div>
 {% call super() %} {% endblock %}

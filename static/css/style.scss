@@ -1,4 +1,38 @@
-body {
-    color: white;
-    background-color: black;
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
 }
+
+* {
+    margin: 0;
+}
+
+body {
+    font-family: 'Times New Roman', Times, serif;
+    width: 100dvw;
+    height: 100dvh;
+    background-color: hsl(0, 0%, 0%);
+    color: white;    
+}
+
+$blue: hsl(200, 100%, 50%);
+$black: hsl(0, 0%, 0%);
+$white: hsl(0, 0%, 100%);
+$gray: hsl(0, 0%, 50%);
+$light-gray: hsl(0, 0%, 90%);
+$light-blue: hsl(200, 100%, 90%);
+$light-green: hsl(120, 100%, 90%);
+$light-red: hsl(0, 100%, 90%);
+$light-yellow: hsl(60, 100%, 90%);
+
+#template_pages {
+    display: grid;
+    grid-template-columns: 65px 1fr 1fr 1fr 65px;
+    grid-template-rows:  repeat(4, 1fr);
+    align-content: end;
+    min-height: 100vh;
+    background-color: $black;
+}
+
+@import "_index";

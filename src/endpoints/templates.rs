@@ -209,3 +209,24 @@ async fn usmc_patrolling() -> Result<NamedFile, actix_web::Error> {
         }
     }
 }
+
+#[get("/hackathon")]
+#[instrument(
+    name = "Serving hackathon.jpg",
+    level = "info",
+    target = "portfolio_site"
+)]
+async fn hackathon() -> Result<NamedFile, actix_web::Error> {
+    info!("Serving hackathon.jpg");
+
+    let filename = "hackathon_win.jpg";
+    let path: PathBuf = ["static", "imgs", filename].iter().collect();
+
+    match NamedFile::open(path) {
+        Ok(file) => Ok(file),
+        Err(err) => {
+            error!("Error opening file -- {filename} -- : {err:#?}");
+            Err(actix_web::error::ErrorInternalServerError(err))
+        }
+    }
+}

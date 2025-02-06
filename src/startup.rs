@@ -90,6 +90,7 @@ async fn run(
             .service(templates::action_script)
             .service(templates::prof_headshot)
             .service(templates::usmc_patrolling)
+            .service(templates::hackathon)
             .service(index::index)
             .service(health::health_check)
     })

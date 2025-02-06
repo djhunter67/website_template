@@ -1,0 +1,100 @@
+#landing {
+    grid-column: 2 / 5;
+    grid-row: span 4;
+    display: grid;
+    grid-template-rows: subgrid;
+    // grid-template-columns: subgrid;
+
+    &__nav {
+	grid-row: 1 / 2;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 1rem 0;
+	background-color: red;
+	// height: 13%;
+
+	&__left {
+	    outline:1px solid black;
+	}
+
+	&__middle {
+	    outline:1px solid black;
+	}
+	&__right {
+	    outline:1px solid black;
+	}
+    }
+
+    &__splash {
+	grid-row: 2 / 3;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	// hsl white
+	background-color: hsl(0, 0%, 100%);
+
+	&__headshot {
+	    height: 100%;
+	    figure {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+	    }
+	}
+
+	&__name {
+	    color: hsl(0, 0%, 0%);
+	    display: flex;
+	    flex-direction: column;
+	    justify-content: flex-end;
+	    align-items: center;
+	    width: 50%;
+	    height: 100%;
+
+	    h2 {
+		font-size: 8rem;
+	    }
+
+	    h3 {
+		font-size: 5rem;
+	    }
+	}
+    }
+
+    &__about {
+    	grid-row: 3 / 4;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: green;
+    }
+
+    &__contact {
+	grid-row: 4 / 5;
+	display: flex;
+	justify-content: center;
+	align-items: start;
+	background-color: purple;
+
+	&__form {
+	    width: 50%;
+	    height: 50%;
+	}
+
+	figure {
+	    width: 100%;
+	    height: 50%;
+	    object-fit: contain;
+	}
+
+	&__links {
+	    display: flex;
+	    justify-content: space-around;
+	    align-items: center;
+	    width: 100%;
+	    height: 50%;
+	    background-color: orange;
+	}
+    }
+}

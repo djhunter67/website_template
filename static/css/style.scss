@@ -29,7 +29,7 @@ $light-yellow: hsl(60, 100%, 90%);
 #template_pages {
     display: grid;
     grid-template-columns: 65px 1fr 1fr 1fr 65px;
-    grid-template-rows:  repeat(4, 1fr);
+    grid-template-rows:  0.75fr 2fr 2fr 2fr;
     align-content: end;
     min-height: 100vh;
     background-color: $black;

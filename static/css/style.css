@@ -37,16 +37,16 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 0;
-  background-color: red;
 }
 #landing__nav__left {
-  outline: 1px solid black;
-}
-#landing__nav__middle {
-  outline: 1px solid black;
+  align-self: flex-start;
+  font-size: 2rem;
+  padding: 0 1rem;
 }
 #landing__nav__right {
-  outline: 1px solid black;
+  padding: 0 1rem;
+  align-self: flex-end;
+  font-size: 2rem;
 }
 #landing__splash {
   grid-row: 2/3;
@@ -57,11 +57,15 @@ body {
 }
 #landing__splash__headshot {
   height: 100%;
+  padding: 2rem;
 }
 #landing__splash__headshot figure {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+#landing__splash__headshot figure img {
+  border-radius: 2rem;
 }
 #landing__splash__name {
   color: hsl(0, 0%, 0%);
@@ -71,6 +75,7 @@ body {
   align-items: center;
   width: 50%;
   height: 100%;
+  padding-right: 1rem;
 }
 #landing__splash__name h2 {
   font-size: 8rem;

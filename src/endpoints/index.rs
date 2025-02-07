@@ -22,7 +22,7 @@ pub async fn index() -> HttpResponse {
         version,
         linkedin: "https://www.linkedin.com/in/christerpher",
         github: "https://github.com/djhunter67",
-        source_url: "localhost:8000",
+        source_url: "https://christerpher.com",
     };
 
     let rendered = var_name.render().expect("Failed to render template");

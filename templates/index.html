@@ -3,13 +3,13 @@
 <div id="landing">
   <nav id="landing__nav">
     <section id="landing__nav__left">
-      <a href="{{ source_url }}">
+      <a href="{{ source_url }}" target="_blank">
 	<h1>{{ title }} {{ version }}</h1>
       </a>
     </section>
     
     <section id="landing__nav__right">
-      <a href="{{ source_url }}">Project</a>
+      <a href="{{ source_url }}" target="_blank">Project</a>
     </section>
   </nav>
 
@@ -43,8 +43,6 @@
   </section>
 
   <section id="landing__contact">
-    
-
     <div id="landing__contact__info">
       <h2>CONTACT</h2>
       
@@ -61,20 +59,22 @@
     </div>
 
     <aside id="landing__contact__links">
-      <a href="
-	       {% if !github.is_empty() %}
+      <a href="{% if !github.is_empty() %}
 	       {{ github }}
 	       {% else %}
 	       #
-	       {% endif %}
-	       ">GitHub</a>
-      <a href="
-	       {% if !linkedin.is_empty() %}
+	       {% endif %}"
+	 target="_blank">
+	<img src="/github" alt="GitHub" width="50px" height="50px">
+      </a>
+      <a href="{% if !linkedin.is_empty() %}
 	       {{ linkedin }}
 	       {% else %}
 	       #
-	       {% endif %}
-	       ">LinkedIn</a>
+	       {% endif %}"
+	 target="_blank">
+	    <img src="/linkedin" alt="LinkedIn" width="50px" height="50px">
+      </a>
     </aside>
   </section>
 </div>

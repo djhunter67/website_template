@@ -230,3 +230,41 @@ async fn hackathon() -> Result<NamedFile, actix_web::Error> {
         }
     }
 }
+
+#[get("/github")]
+#[instrument(name = "Serving github.svg", level = "info", target = "portfolio_site")]
+async fn github() -> Result<NamedFile, actix_web::Error> {
+    info!("Serving github.webp");
+
+    let filename = "github.webp";
+    let path: PathBuf = ["static", "imgs", filename].iter().collect();
+
+    match NamedFile::open(path) {
+        Ok(file) => Ok(file),
+        Err(err) => {
+            error!("Error opening file -- {filename} -- : {err:#?}");
+            Err(actix_web::error::ErrorInternalServerError(err))
+        }
+    }
+}
+
+#[get("/linkedin")]
+#[instrument(
+    name = "Serving linkedin.svg",
+    level = "info",
+    target = "portfolio_site"
+)]
+async fn linkedin() -> Result<NamedFile, actix_web::Error> {
+    info!("Serving linkedin.svg");
+
+    let filename = "linkedIn.svg";
+    let path: PathBuf = ["static", "imgs", filename].iter().collect();
+
+    match NamedFile::open(path) {
+        Ok(file) => Ok(file),
+        Err(err) => {
+            error!("Error opening file -- {filename} -- : {err:#?}");
+            Err(actix_web::error::ErrorInternalServerError(err))
+        }
+    }
+}

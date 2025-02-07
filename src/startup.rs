@@ -91,6 +91,8 @@ async fn run(
             .service(templates::prof_headshot)
             .service(templates::usmc_patrolling)
             .service(templates::hackathon)
+            .service(templates::github)
+            .service(templates::linkedin)
             .service(index::index)
             .service(health::health_check)
     })

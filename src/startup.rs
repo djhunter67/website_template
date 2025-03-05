@@ -2,12 +2,12 @@ use crate::endpoints::{health, index, templates};
 use crate::models::r2d2_mongodb::client_manager::MongoClientManager;
 use crate::settings::Settings;
 use actix_web::web::Data;
-use actix_web::{http::KeepAlive, middleware, App, HttpServer};
+use actix_web::{App, HttpServer, http::KeepAlive, middleware};
+use deadpool_redis::{Config, Runtime};
 use mongodb::options::{ClientOptions, ServerAddress};
-use r2d2_postgres::postgres::config::SslMode;
-use r2d2_postgres::postgres::{Config, NoTls};
 use r2d2_postgres::PostgresConnectionManager;
-use r2d2_redis::RedisConnectionManager;
+use r2d2_postgres::postgres::config::SslMode;
+use r2d2_postgres::postgres::{Config as PsqlConfig, NoTls};
 use r2d2_sqlite::SqliteConnectionManager;
 use std::net;
 use std::time::Duration;
@@ -26,12 +26,12 @@ async fn run(
     settings: Settings,
 ) -> Result<actix_web::dev::Server, std::io::Error> {
     let sqlite_pool: SqliteConnectionManager = SqliteConnectionManager::file(settings.sqlite.path);
-    let redis_pool: RedisConnectionManager =
-        r2d2_redis::RedisConnectionManager::new(settings.redis.url.clone())
-            .expect("Failed to create Redis connection redis_pool");
+    let redis_config =
+        Config::from_url(settings.redis.url.as_str()).create_pool(Some(Runtime::Tokio1));
+    let redis_pool = redis_config.expect("Failed to create Redis connection redis_pool");
 
     let postgres_pool: PostgresConnectionManager<NoTls> = PostgresConnectionManager::new(
-        Config::new()
+        PsqlConfig::new()
             .user(&settings.postgres.username)
             .password(settings.postgres.password.clone())
             .dbname(&settings.postgres.db)

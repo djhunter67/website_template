@@ -16,7 +16,6 @@ pub async fn index() -> HttpResponse {
     let version: &str = env!("CARGO_PKG_VERSION");
 
     let var_name = IndexTemplate {
-        // EUBands: vec!["1", "8", "40", "20", "28A", "28B"]
         title: "Home",
         content: vec!["friendly", "messages"],
         version,
@@ -32,4 +31,32 @@ pub async fn index() -> HttpResponse {
     HttpResponse::Ok()
         .content_type(ContentType::html())
         .body(rendered)
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use actix_web::{test, web::Bytes, App};
+
+    use super::index;
+
+    #[actix_web::test]
+    async fn test_get_index() {
+        let app = test::init_service(App::new().service(index)).await;
+        let req = test::TestRequest::get().uri("/").to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_success());
+    }
+
+    #[actix_web::test]
+    async fn test_index_is_html() {
+        let app = test::init_service(App::new().service(index)).await;
+        let req = test::TestRequest::get().uri("/").to_request();
+
+        let resp = test::call_and_read_body(&app, req).await;
+        assert!(!resp.is_empty());
+        let first_letters: Bytes = resp.slice(0..15).iter().copied().collect();
+        let conv_str = std::str::from_utf8(&first_letters).unwrap();
+        assert!(conv_str == "<!DOCTYPE html>");
+    }
 }

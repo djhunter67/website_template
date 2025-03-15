@@ -134,11 +134,11 @@ impl TryFrom<String> for Environment {
 ///   - ``APP__APPLICATION_PORT=5001`` for "port" to be set as "5001"
 #[instrument(name = "Get Settings", level = "info", target = "demo_web_app")]
 pub fn get() -> Result<Settings, config::ConfigError> {
-    println!("Getting the system config settings");
+    // println!("Getting the system config settings");
     let base_path = std::env::current_dir().expect("Failed to determine the current directory");
-    println!("The base path is {base_path:?}");
+    // println!("The base path is {base_path:?}");
     let setting_directory = base_path.join("settings");
-    println!("The setting directory is {setting_directory:?}");
+    // println!("The setting directory is {setting_directory:?}");
 
     let environment: Environment = match env::var("APP_ENVIRONMENT")
         .unwrap_or_else(|_| "development".into())
@@ -147,13 +147,13 @@ pub fn get() -> Result<Settings, config::ConfigError> {
         Ok(env) => env,
         Err(err) => return Err(config::ConfigError::Message(err)),
     };
-    println!("The environment is {:?}", environment.as_str());
+    // println!("The environment is {:?}", environment.as_str());
     let environment_filename = format!("{}.yaml", environment.as_str());
 
-    println!(
-        "Building the settings for the {} environment",
-        environment.as_str()
-    );
+    // println!(
+    // "Building the settings for the {} environment",
+    // environment.as_str()
+    // );
     let settings: Config = match Config::builder()
         .add_source(File::from(setting_directory.join("base.yaml")))
         .add_source(File::from(setting_directory.join(environment_filename)))

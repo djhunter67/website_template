@@ -1,7 +1,7 @@
 use crate::endpoints::{health, index, templates};
 use crate::models::r2d2_mongodb::client_manager::MongoClientManager;
 use crate::settings::Settings;
-use actix_web::web::Data;
+use actix_web::web::{self, Data};
 use actix_web::{http::KeepAlive, middleware, App, HttpServer};
 use mongodb::options::{ClientOptions, ServerAddress};
 use r2d2_postgres::postgres::config::SslMode;
@@ -75,7 +75,7 @@ async fn run(
         App::new()
             .wrap(middleware::Logger::default())
             .wrap(middleware::Compress::default())
-            // .wrap(middleware::DefaultHeaders::new().add(("X-Version", env!("CARGO_PKG_VERSION"))))
+            // .wrap(middleware::DefaultHeaders::new().add(("X-Version", env!("CARGO_PKG_VERSION")))) // Security
             .app_data(db_redis.clone())
             .app_data(db_sqlite.clone())
             .app_data(db_postgres.clone())
@@ -95,6 +95,7 @@ async fn run(
             .service(templates::linkedin)
             .service(index::index)
             .service(health::health_check)
+            .route("/sse", web::get().to(index::sse))
     })
     .keep_alive(KeepAlive::Os) // Keep the connection alive; OS handled
     .disable_signals() // Disable the signals to allow the OS to handle the signals

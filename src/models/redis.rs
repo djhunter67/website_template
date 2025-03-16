@@ -1,22 +1,20 @@
 //! Initialize and return a connection to the ``Redis`` database.
 
-use std::sync::Arc;
-
 use crate::settings::Settings;
-
 use actix_web::web::Data;
+use std::{sync::Arc, time::Duration};
 
-use deadpool_redis::{
-    Pool as RdPool,
-    redis::{RedisResult, cmd},
-};
+use r2d2::Pool;
+
+use r2d2_redis::RedisConnectionManager;
+
 use tracing::instrument;
 
 #[must_use]
 #[instrument(
     name = "Establishing a connection to the Redis database",
     level = "info",
-    skip(_settings, manager)
+    skip(settings, manager)
 )]
 /// # Returns
 ///   - Returns a `Pool` of `RedisConnectionManager` to the redis db if successful
@@ -28,21 +26,27 @@ use tracing::instrument;
 ///   - Panics if the pool cannot be created
 ///
 /// Initialize and return a connection to the ``Redis`` database.
-pub async fn establish_connection(_settings: &Settings, manager: Data<RdPool>) -> RdPool {
-    let pool = manager;
 
-    // Test connection
-    let mut conn = pool.get().await.expect("Failed to get Redis connection");
-    let result: RedisResult<String> = cmd("PING").query_async::<String>(&mut conn).await;
-
-    assert_eq!(result, Ok("PONG".to_string()));
-
-    Arc::into_inner(pool.into_inner()).expect("Failed to get Redis connection")
+pub fn establish_connection(
+    settings: &Settings,
+    manager: Data<RedisConnectionManager>,
+) -> Pool<RedisConnectionManager> {
+    r2d2::Pool::builder()
+        .max_size(settings.redis.pool_size)
+        .connection_timeout(Duration::from_secs(
+            settings.redis.pool_timeout_seconds.into(),
+        ))
+        .build(
+            Arc::into_inner(manager.into_inner())
+                .map_or_else(|| panic!("No Manager found"), |manager| manager),
+        )
+        .expect("Failed to create pool")
 }
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
+    use r2d2_redis::redis::{Cmd, Commands, ConnectionLike, Value};
     use rstest::{fixture, rstest};
     use std::thread::spawn;
 
@@ -51,10 +55,10 @@ mod tests {
     use super::*;
 
     #[fixture]
-    async fn pool() -> RdPool {
-        let manager = RdPool::get(RdPool::manager());
-
-        establish_connection(&settings::get().unwrap(), Data::new(manager)).await
+    fn pool() -> Pool<RedisConnectionManager> {
+        let manager = RedisConnectionManager::new(settings::get().unwrap().redis.url)
+            .expect("Failed to create Redis manager");
+        establish_connection(&settings::get().unwrap(), Data::new(manager))
     }
 
     #[rstest]

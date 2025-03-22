@@ -1,11 +1,42 @@
 //! Initialize and return a connection to the ``SQLite`` database.
 use std::{sync::Arc, time::Duration};
 
-use crate::settings::Settings;
+use crate::{
+    errors::{self, sqlite::Error},
+    settings::{Settings, Sqlite},
+};
 use actix_web::web::Data;
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 use tracing::{info, instrument};
+
+pub struct SqliteData {
+    pub path: String,
+    pub schema: String,
+    pub pool_size: u32,
+    pub connection_timeout: u64,
+    pub data: String,
+}
+
+impl From<Sqlite> for SqliteData {
+    fn from(value: Sqlite) -> Self {
+        Self {
+            path: value.path,
+            schema: value.schema,
+            pool_size: value.pool_size,
+            connection_timeout: value.connection_timeout,
+            data: String::new(),
+        }
+    }
+}
+
+impl SqliteData {
+    fn new(data: String, settings: Sqlite) -> Self {
+        let mut sqlite_data = Self::from(settings);
+        sqlite_data.data = data;
+        sqlite_data
+    }
+}
 
 #[must_use]
 #[instrument(
@@ -18,6 +49,7 @@ use tracing::{info, instrument};
 ///
 /// # Arguments
 ///   - `settings` - The settings for the application
+///   - `manager`  - The sqlite DB connection manager
 ///
 /// # Panics
 ///   - Panics if the pool cannot be created
@@ -26,16 +58,16 @@ use tracing::{info, instrument};
 pub fn establish_connection(
     settings: &Settings,
     manager: Data<SqliteConnectionManager>,
-) -> Pool<SqliteConnectionManager> {
+) -> Result<Pool<SqliteConnectionManager>, errors::sqlite::Error> {
     info!("Establishing a connection to the SQLite database");
     r2d2::Pool::builder()
         .max_size(settings.sqlite.pool_size)
         .connection_timeout(Duration::from_secs(settings.sqlite.connection_timeout))
-        .build(
-            Arc::into_inner(manager.into_inner())
-                .map_or_else(|| panic!("No Manager found"), |manager| manager),
-        )
-        .expect("Failed to create pool")
+        .build(match Arc::into_inner(manager.into_inner()) {
+            Some(manager) => manager,
+            None => return Err(Error::NoConnection),
+        })
+        .map_err(|_| Error::NoConnection)
 }
 
 #[cfg(test)]
@@ -51,7 +83,7 @@ mod tests {
     #[rstest]
     fn test_can_write_to_sqlite() {
         let manager = r2d2_sqlite::SqliteConnectionManager::file("test.db");
-        let pool = establish_connection(&settings::get().unwrap(), Data::new(manager));
+        let pool = establish_connection(&settings::get().unwrap(), Data::new(manager)).unwrap();
         let conn = pool.get().unwrap();
 
         // Test query
@@ -81,7 +113,7 @@ mod tests {
     fn test_single_writer_sqlite() {
         // Create a connection pool
         let manager = r2d2_sqlite::SqliteConnectionManager::file("test_1.db");
-        let pool = establish_connection(&settings::get().unwrap(), Data::new(manager));
+        let pool = establish_connection(&settings::get().unwrap(), Data::new(manager)).unwrap();
 
         // Insert 5 items using a for loop
         let mut handles = vec![];
@@ -121,7 +153,7 @@ mod tests {
     #[rstest]
     fn test_write_and_read_sqlite() {
         let manager = r2d2_sqlite::SqliteConnectionManager::file("test_2.db");
-        let pool = establish_connection(&settings::get().unwrap(), Data::new(manager));
+        let pool = establish_connection(&settings::get().unwrap(), Data::new(manager)).unwrap();
 
         // Create table if not exists
         pool.get()
@@ -160,7 +192,7 @@ mod tests {
     fn test_create_four_tables_sqlite() {
         // Create a connection to the new database
         let manager = r2d2_sqlite::SqliteConnectionManager::file("test_3.db");
-        let pool = establish_connection(&settings::get().unwrap(), Data::new(manager));
+        let pool = establish_connection(&settings::get().unwrap(), Data::new(manager)).unwrap();
         let conn = pool.get().unwrap();
 
         // Create four tables with arbitrary names
@@ -202,5 +234,33 @@ mod tests {
             .query_row(query, [], |row| row.get(0))
             .unwrap_or_default();
         count
+    }
+
+    #[rstest]
+    fn test_create_table_with_params() {
+        let manager = r2d2_sqlite::SqliteConnectionManager::file("test_4.db");
+        let pool = establish_connection(&settings::get().unwrap(), Data::new(manager)).unwrap();
+        let conn = pool.get().unwrap();
+
+        // Create a table with parameters
+        let table_name = "test_table";
+        let query =
+            format!("CREATE TABLE {table_name} (id INTEGER PRIMARY KEY, value TEXT NOT NULL)",);
+        conn.execute(&query, []).unwrap();
+
+        // Verify the table exists
+        let result: i32 = conn
+            .query_row(
+                "SELECT COUNT(name) FROM sqlite_master WHERE type='table' AND name = :1",
+                [&table_name],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(result, 1);
+
+        drop(conn);
+        // Remove the test database
+        assert!(std::fs::remove_file("test_4.db").is_ok());
     }
 }
